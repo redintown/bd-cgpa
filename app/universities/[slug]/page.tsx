@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { CgpaCalculator } from "@/components/calculator/CgpaCalculator";
 import { GradingPolicyTable } from "@/components/university/GradingPolicyTable";
 import { SourceInformation } from "@/components/university/SourceInformation";
 import { UniversityHeader } from "@/components/university/UniversityHeader";
@@ -119,6 +120,30 @@ export default async function UniversityPage({
             </p>
           )}
         </section>
+
+        {activePolicy ? (
+          <section
+            aria-labelledby="cgpa-calculator"
+            className="flex flex-col gap-5"
+          >
+            <div className="flex flex-col gap-1">
+              <h2
+                id="cgpa-calculator"
+                className="text-xl font-semibold tracking-tight text-foreground"
+              >
+                CGPA calculator
+              </h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Based on the {university.shortName} {activePolicy.name}.
+              </p>
+            </div>
+
+            <CgpaCalculator
+              gradeBands={activePolicy.gradeBands}
+              scaleMax={activePolicy.scaleMax}
+            />
+          </section>
+        ) : null}
       </main>
 
       <SiteFooter />
