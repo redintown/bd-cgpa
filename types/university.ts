@@ -50,9 +50,16 @@ export interface GradeBand {
   letter: string;
   /** Grade point awarded for this band, e.g. 4.0. */
   gradePoint: number;
-  /** Inclusive lower bound of the marks range, if the policy defines one. */
+  /**
+   * Inclusive lower bound of the marks range, if the policy defines one.
+   * Absent when the policy states no lower bound (e.g. "less than 45%").
+   */
   minMark?: number;
-  /** Inclusive upper bound of the marks range, if the policy defines one. */
+  /**
+   * Exclusive upper bound of the marks range, if the policy defines one, so a
+   * band published as "85% to less than 90%" is `{ minMark: 85, maxMark: 90 }`.
+   * Absent when the policy states no upper bound (e.g. "90% and above").
+   */
   maxMark?: number;
   /** Optional qualitative remark, e.g. "Outstanding", "Fail". */
   remark?: string;
