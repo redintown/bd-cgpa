@@ -3,6 +3,7 @@ import type {
   Division,
   GradeBand,
   GradingPolicy,
+  IsoDateString,
   University,
   UniversityType,
 } from "@/types/university";
@@ -21,8 +22,8 @@ import type {
  *   grading_policies(id, university_id, name, scale_max, is_active,
  *                    effective_from, effective_to, notes, source_url,
  *                    verified_at, verified_by)
- *   grade_bands(id, grading_policy_id, letter, grade_point, min_mark, max_mark,
- *               remark, sort_order)
+ *   grade_bands(id, grading_policy_id, letter, grade_point, min_marks,
+ *               max_marks, remark, sort_order)
  *
  * This module performs no writes; INSERT/UPDATE/DELETE are out of scope and
  * must be protected by RLS at the database level.
@@ -31,8 +32,8 @@ import type {
 interface GradeBandRow {
   letter: string;
   grade_point: number;
-  min_mark: number | null;
-  max_mark: number | null;
+  min_marks: number | null;
+  max_marks: number | null;
   remark: string | null;
   sort_order: number | null;
 }
@@ -88,8 +89,8 @@ const UNIVERSITY_SELECT = `
     grade_bands (
       letter,
       grade_point,
-      min_mark,
-      max_mark,
+      min_marks,
+      max_marks,
       remark,
       sort_order
     )
@@ -100,8 +101,8 @@ function mapGradeBand(row: GradeBandRow): GradeBand {
   return {
     letter: row.letter,
     gradePoint: row.grade_point,
-    ...(row.min_mark !== null ? { minMark: row.min_mark } : {}),
-    ...(row.max_mark !== null ? { maxMark: row.max_mark } : {}),
+    ...(row.min_marks !== null ? { minMark: row.min_marks } : {}),
+    ...(row.max_marks !== null ? { maxMark: row.max_marks } : {}),
     ...(row.remark !== null ? { remark: row.remark } : {}),
     ...(row.sort_order !== null ? { sortOrder: row.sort_order } : {}),
   };
@@ -113,7 +114,9 @@ function mapGradingPolicy(row: GradingPolicyRow): GradingPolicy {
     name: row.name,
     scaleMax: row.scale_max,
     isActive: row.is_active,
-    gradeBands: (row.grade_bands ?? []).map(mapGradeBand),
+    gradeBands: (row.grade_bands ?? [])
+      .map(mapGradeBand)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
     sourceUrl: row.source_url,
     verifiedAt: row.verified_at,
     ...(row.effective_from !== null ? { effectiveFrom: row.effective_from } : {}),
@@ -171,6 +174,31 @@ export async function getUniversityBySlug(
   return data ? mapUniversity(data as unknown as UniversityRow) : null;
 }
 
+/** A published university route, used to build the sitemap. */
+export interface UniversityRoute {
+  slug: string;
+  /** Timestamp of the last change to the university row. */
+  updatedAt: IsoDateString;
+}
+
+/** Returns every university slug with its last-modified timestamp. */
+export async function getUniversityRoutes(): Promise<UniversityRoute[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("universities")
+    .select("slug, updated_at")
+    .order("slug", { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to load university routes: ${error.message}`);
+  }
+
+  return (data ?? []).map((row) => ({
+    slug: row.slug,
+    updatedAt: row.updated_at,
+  }));
+}
+
 /** Returns the active grading policy for a university, or `null` if none. */
 export async function getActiveGradingPolicy(
   universityId: string,
@@ -193,8 +221,8 @@ export async function getActiveGradingPolicy(
       grade_bands (
         letter,
         grade_point,
-        min_mark,
-        max_mark,
+        min_marks,
+        max_marks,
         remark,
         sort_order
       )
