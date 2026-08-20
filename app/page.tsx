@@ -1,12 +1,8 @@
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
-import { SearchInput } from "@/components/ui/SearchInput";
-import { UniversityList } from "@/components/university/UniversityList";
-import { getAllUniversities } from "@/lib/universities";
+import { UniversitySearch } from "@/components/university/UniversitySearch";
 
 export default function Home() {
-  const universities = getAllUniversities();
-
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
       <SiteHeader />
@@ -23,22 +19,14 @@ export default function Home() {
           </p>
         </section>
 
-        <section className="flex w-full max-w-xl flex-col gap-2">
-          <SearchInput
-            label="Search universities"
-            placeholder="Search by university name or short name…"
-            disabled
-          />
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Search is coming soon.
-          </p>
-        </section>
-
-        <section className="flex flex-col gap-4">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Universities
+        <section aria-labelledby="search-heading" className="flex flex-col gap-4">
+          <h2
+            id="search-heading"
+            className="text-xl font-semibold tracking-tight text-foreground"
+          >
+            Find a university
           </h2>
-          <UniversityList universities={universities} />
+          <UniversitySearch />
         </section>
       </main>
 

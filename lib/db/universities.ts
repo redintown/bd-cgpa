@@ -156,6 +156,73 @@ export async function getUniversities(): Promise<University[]> {
   return ((data ?? []) as unknown as UniversityRow[]).map(mapUniversity);
 }
 
+/** A slim university record returned by search (no grading data). */
+export interface UniversitySearchResult {
+  id: string;
+  slug: string;
+  name: string;
+  shortName: string;
+  city: string;
+}
+
+const SEARCH_RESULT_LIMIT = 20;
+
+/**
+ * Case-insensitive search over `name`, `short_name` and `slug`.
+ *
+ * The filtering happens in the database; only the slim fields needed to render
+ * a result row are selected. An empty or whitespace-only query returns an empty
+ * array without hitting the database.
+ *
+ * The trimmed query is embedded in a PostgREST `.or()` filter, which is used
+ * as-is by the client and must therefore be sanitized by us. We strip the
+ * characters that are structural in that syntax (`,` `(` `)`), the SQL/PostgREST
+ * `LIKE` wildcards (`%` `_` `*`) and the backslash escape, so the term can only
+ * ever be matched as a literal case-insensitive substring — this prevents
+ * filter/SQL injection.
+ */
+export async function searchUniversities(
+  query: string,
+): Promise<UniversitySearchResult[]> {
+  const trimmed = query.trim();
+  if (trimmed === "") {
+    return [];
+  }
+
+  const term = trimmed
+    .replace(/[\\,()%_*]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (term === "") {
+    return [];
+  }
+
+  const pattern = `%${term}%`;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("universities")
+    .select("id, slug, name, short_name, city")
+    .or(
+      `name.ilike.${pattern},short_name.ilike.${pattern},slug.ilike.${pattern}`,
+    )
+    .order("name", { ascending: true })
+    .order("slug", { ascending: true })
+    .limit(SEARCH_RESULT_LIMIT);
+
+  if (error) {
+    throw new Error(`Failed to search universities: ${error.message}`);
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    shortName: row.short_name,
+    city: row.city,
+  }));
+}
+
 /** Returns a single university by slug, or `null` if not found. */
 export async function getUniversityBySlug(
   slug: string,
