@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -58,4 +59,23 @@ export async function getAdminSession(): Promise<AdminSession> {
     console.error("Admin authorization lookup threw:", error);
     return { user, isAdmin: false };
   }
+}
+
+/**
+ * Server-Component gate for protected admin pages. Redirects unauthenticated
+ * visitors to the login page, and authenticated non-admins to a not-authorized
+ * error. Returns the verified admin user when authorization succeeds.
+ */
+export async function requireAdmin(): Promise<User> {
+  const { user, isAdmin } = await getAdminSession();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  if (!isAdmin) {
+    redirect("/admin/login?error=not_authorized");
+  }
+
+  return user;
 }

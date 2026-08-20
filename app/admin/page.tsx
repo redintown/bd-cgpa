@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
-import { getAdminSession } from "@/lib/auth/admin";
+import Link from "next/link";
+import { AdminShell } from "@/components/admin/AdminShell";
+import { requireAdmin } from "@/lib/auth/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -12,32 +12,11 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminPage() {
-  // Authoritative server-side gate (defense in depth alongside the proxy and,
-  // eventually, database RLS): require an authenticated user who is also on the
-  // database-backed admin allowlist.
-  const { user, isAdmin } = await getAdminSession();
-
-  if (!user) {
-    redirect("/admin/login");
-  }
-
-  if (!isAdmin) {
-    redirect("/admin/login?error=not_authorized");
-  }
+  const user = await requireAdmin();
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col bg-zinc-50 dark:bg-black">
-      <header className="w-full border-b border-black/[.08] dark:border-white/[.145]">
-        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-6">
-          <span className="text-lg font-semibold tracking-tight text-foreground">
-            BD CGPA{" "}
-            <span className="text-zinc-500 dark:text-zinc-400">Admin</span>
-          </span>
-          <AdminSignOutButton />
-        </div>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-16">
+    <AdminShell>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-16">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             Admin area
@@ -48,11 +27,20 @@ export default async function AdminPage() {
           </p>
         </div>
 
-        <p className="max-w-2xl text-sm text-zinc-500 dark:text-zinc-400">
-          This is the protected admin foundation. Management features will be
-          added here in a later step.
-        </p>
+        <nav aria-label="Admin sections">
+          <Link
+            href="/admin/universities"
+            className="flex max-w-xl flex-col gap-1 rounded-2xl border border-black/[.08] bg-white p-6 transition-colors hover:border-black/[.2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-white/[.145] dark:bg-black dark:hover:border-white/[.3]"
+          >
+            <span className="text-lg font-semibold tracking-tight text-foreground">
+              Manage Universities
+            </span>
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">
+              View, add, and edit universities shown on the public site.
+            </span>
+          </Link>
+        </nav>
       </main>
-    </div>
+    </AdminShell>
   );
 }
